@@ -252,6 +252,9 @@ class ImportSequence(bpy.types.Operator, ImportHelper):
                 return {'CANCELLED'}
             else:
                 self.sequenceSettings.fileNamePrefix = self.properties.filepath.split('/')[-1].split('.')[0]
+                print(self.sequenceSettings.fileNamePrefix)
+
+        final_name = self.sequenceSettings.fileNamePrefix + '_sequence'
 
         self.importSettings.axis_forward = self.axis_forward
         self.importSettings.axis_up = self.axis_up
@@ -321,8 +324,8 @@ class ImportSequence(bpy.types.Operator, ImportHelper):
                     return {'CANCELLED'}
                 
                 # get the name of the first mesh, remove trailing numbers and _ and .
-                firstMeshName = os.path.splitext(mss.meshNameArray[1].basename)[0].rstrip('._0123456789')
-                seqObj.name = createUniqueName(firstMeshName + '_sequence', bpy.data.objects)
+                # firstMeshName = os.path.splitext(mss.meshNameArray[1].basename)[0].rstrip('._0123456789')
+                seqObj.name = createUniqueName(final_name, bpy.data.objects)
                 seqObj.mesh_sequence_settings.isImported = True
             else:
                 # this filename prefix had no matching files
