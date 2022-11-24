@@ -23,6 +23,7 @@ import math
 import os
 import re
 import glob
+import pickle
 from bpy.app.handlers import persistent
 import time
 from .version import *
@@ -342,6 +343,8 @@ def fileExtensionFromType(_type):
         return 'ply'
     elif(_type == 'x3d'):
         return 'x3d'
+    elif(_type == 'pkl'):
+        return 'pkl'
     return ''
 
 
@@ -572,7 +575,8 @@ class MeshSequenceSettings(bpy.types.PropertyGroup):
         items=[('obj', 'OBJ', 'Wavefront OBJ'),
                ('stl', 'STL', 'STereoLithography'),
                ('ply', 'PLY', 'Stanford PLY'),
-               ('x3d', 'X3D', 'X3D Extensible 3D')],
+               ('x3d', 'X3D', 'X3D Extensible 3D'),
+               ('pkl', 'Pickle', 'Python Pickle')],
         name='File Format',
         default='obj')
 
@@ -766,6 +770,7 @@ def loadStreamingSequenceFromMeshFiles(obj, directory, filePrefix):
 
 
 def loadSequenceFromMeshFiles(_obj, _dir, _file):
+    start_time = time.time()
     full_dirpath = bpy.path.abspath(_dir)
     fileExtension = fileExtensionFromType(_obj.mesh_sequence_settings.fileFormat)
 
@@ -778,24 +783,38 @@ def loadSequenceFromMeshFiles(_obj, _dir, _file):
     unsortedFiles = glob.glob(full_filepath)
     sortedFiles = sorted(unsortedFiles, key=alphanumKey)
 
+    if fileExtension == 'pkl':
+        filename = sortedFiles[0]
+        mesh_sequence_pickle = pickle.load(open(filename, 'rb'))
+        sortedFiles = mesh_sequence_pickle
+
     mss = _obj.mesh_sequence_settings
 
     deselectAll()
-    for file in sortedFiles:
-        # import the mesh file
-        mss.fileImporter.load(mss.fileFormat, file)
+    for i, file in enumerate(sortedFiles):
+        if fileExtension != 'pkl':
+            # import the mesh file
+            mss.fileImporter.load(mss.fileFormat, file)
 
-        # get the first object of type MESH
-        # TODO: eventually, let's pull out all MESH objects and put them into their own individual sequences
-        tmpObject = next(filter(lambda meshObj: meshObj.type == 'MESH', bpy.context.selected_objects), None)
+            # get the first object of type MESH
+            # TODO: eventually, let's pull out all MESH objects and put them into their own individual sequences
+            tmpObject = next(filter(lambda meshObj: meshObj.type == 'MESH', bpy.context.selected_objects), None)
+            basename = os.path.basename(file)
+            # make a list of the objects we're going to delete
+            objsToDelete = bpy.context.selected_objects.copy()
+        else:
+            mesh = bpy.data.meshes.new(createUniqueName(f'middle_{i}', bpy.data.meshes))
+            mesh.from_pydata(file['vertices'], [], file['faces'])
+            mesh.update()
+            tmpObject = bpy.data.objects.new(createUniqueName(f'middle_{i}', bpy.data.objects), mesh)
+            bpy.context.collection.objects.link(tmpObject)
+            basename = f'middle_{i}'
+            objsToDelete = [tmpObject]
 
         # IMPORTANT: don't copy it; just copy the pointer. This cuts memory usage in half.
         tmpMesh = tmpObject.data
         tmpMesh.use_fake_user = True
         tmpMesh.inMeshSequence = True
-
-        # make a list of the objects we're going to delete
-        objsToDelete = bpy.context.selected_objects.copy()
 
         # now, delete all selected objects. Yes, even our precious mesh object. We already saved its mesh data
         for obj in objsToDelete:
@@ -810,7 +829,7 @@ def loadSequenceFromMeshFiles(_obj, _dir, _file):
 
         newMeshNameElement = mss.meshNameArray.add()
         newMeshNameElement.key = tmpMesh.name
-        newMeshNameElement.basename = os.path.basename(file)
+        newMeshNameElement.basename = basename
         newMeshNameElement.inMemory = True
         numFrames += 1
 
@@ -822,6 +841,7 @@ def loadSequenceFromMeshFiles(_obj, _dir, _file):
         _obj.select_set(state=True)
         mss.loaded = True
 
+    print(f'Loaded {numFrames} frames in {time.time() - start_time} seconds')
     return numFrames
 
 

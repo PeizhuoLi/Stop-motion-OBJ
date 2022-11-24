@@ -22,12 +22,12 @@ from .stop_motion_obj import *
 from .panels import *
 
 bl_info = {
-    "name": "Stop motion OBJ",
+    "name": "Stop motion OBJ 2",
     "description": "Import a sequence of OBJ (or STL or PLY or X3D) files and display them each as a single frame of animation. This add-on also supports the .STL, .PLY, and .X3D file formats.",
-    "author": "Justin Jensen",
-    "version": (2, 2, 0, "beta.0"),
+    "author": "Justin Jensen, Peizhuo Li",
+    "version": (2, 3, 0, "beta.0"),
     "blender": (2, 83, 0),
-    "location": "File > Import > Mesh Sequence",
+    "location": "File > Import > Mesh Sequence 2",
     "warning": "",
     "category": "Import",
     "wiki_url": "https://github.com/neverhood311/Stop-motion-OBJ/wiki",

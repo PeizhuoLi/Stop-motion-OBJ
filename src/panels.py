@@ -216,9 +216,10 @@ class SequenceImportSettings(bpy.types.PropertyGroup):
         items=[('obj', 'OBJ', 'Wavefront OBJ'),
                ('stl', 'STL', 'STereoLithography'),
                ('ply', 'PLY', 'Stanford PLY'),
-               ('x3d', 'X3D', 'X3D Extensible 3D')],
+               ('x3d', 'X3D', 'X3D Extensible 3D'),
+               ('pkl', 'Pickle', 'Python Pickle Dictionary')],
         name='File Format',
-        default='obj')
+        default='pkl')
     dirPathIsRelative: bpy.props.BoolProperty(
         name="Relative Paths",
         description="Store relative paths for Streaming sequences and for reloading Cached sequences",
@@ -236,7 +237,7 @@ class ImportSequence(bpy.types.Operator, ImportHelper):
     sequenceSettings: bpy.props.PointerProperty(type=SequenceImportSettings)
 
     # for now, we'll just show any file type that Stop Motion OBJ supports
-    filter_glob: bpy.props.StringProperty(default="*.stl;*.obj;*.mtl;*.ply;*.x3d")
+    filter_glob: bpy.props.StringProperty(default="*.stl;*.obj;*.mtl;*.ply;*.x3d;*.pkl")
 
     directory: bpy.props.StringProperty(subtype='DIR_PATH')
 
@@ -244,9 +245,13 @@ class ImportSequence(bpy.types.Operator, ImportHelper):
     axis_up: bpy.props.StringProperty(default="Y")
 
     def execute(self, context):
+        suffix = fileExtensionFromType(self.sequenceSettings.fileFormat)
         if self.sequenceSettings.fileNamePrefix == "":
-            self.report({'ERROR_INVALID_INPUT'}, "Please enter a file name prefix")
-            return {'CANCELLED'}
+            if suffix != 'pkl':
+                self.report({'ERROR_INVALID_INPUT'}, "Please enter a file name prefix")
+                return {'CANCELLED'}
+            else:
+                self.sequenceSettings.fileNamePrefix = self.properties.filepath.split('/')[-1].split('.')[0]
 
         self.importSettings.axis_forward = self.axis_forward
         self.importSettings.axis_up = self.axis_up
@@ -265,6 +270,10 @@ class ImportSequence(bpy.types.Operator, ImportHelper):
 
             # separate the directory from the file name
             basenamePrefix = os.path.basename(absWildcardPath).split('*')[0]
+            # if suffix == 'pkl' and self.sequenceSettings.fileNamePrefix == "":
+            #     print('Debug', self.properties.filepath)
+            #     basenamePrefix = self.properties.filepath.split('/')[-1].split('.')[0]
+            #     print(basenamePrefix)
 
             # get the final directory path
             dirPath = os.path.dirname(absWildcardPath)
