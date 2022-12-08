@@ -449,7 +449,7 @@ class SMO_PT_SequenceImportSettingsPanel(bpy.types.Panel):
 
 
 def menu_func_import_sequence(self, context):
-    self.layout.operator(ImportSequence.bl_idname, text="Mesh Sequence")
+    self.layout.operator(ImportSequence.bl_idname, text="Mesh Sequence (modified)")
 
 
 class ConvertToMeshSequence(bpy.types.Operator):
